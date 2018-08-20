@@ -1,0 +1,3 @@
+<obstacal>  <obstacle> 
+<duting>  <dusting> 
+<ironicly>  <ironic> 

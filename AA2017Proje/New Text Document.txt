@@ -1,0 +1,367 @@
+
+/*
+
+
+TODO
+
+birden fazla bosluk kaldirilacak
+
+
+
+
+
+
+*/
+
+
+#include <stdio.h>
+#include <string.h>
+
+#define TEXT_SIZE 1000
+#define SHINGLE_SIZE 1000
+#define DOC_ARRAY_SIZE 20
+#define DOC_10 120
+
+#define M 150
+
+typedef struct DOC {
+	char text[TEXT_SIZE];
+	char clearText[TEXT_SIZE];
+	char shingle4[SHINGLE_SIZE][8];
+	char shingle5[SHINGLE_SIZE][8];
+	char shingle8[SHINGLE_SIZE][8];
+	int count[3];
+}DOC;
+
+struct DOC document[DOC_ARRAY_SIZE];
+
+void init_documents(int i, char text[], char ctext[], char sh4[][8], char sh5[][8], char sh8[][8], int count[]){
+	int j,k;
+	strcpy(document[i].text,text);
+	
+	for(j=0; j<3; j++){
+		document[i].count[j]=count[j];
+	}
+	
+	for(j=0; j<count[0]; j++){
+		for(k=0; k<4; k++){
+			document[i].shingle4[j][k]=sh4[j][k];
+		}
+	}
+	
+	for(j=0; j<count[1]; j++){
+		for(k=0; k<5; k++){
+			document[i].shingle5[j][k]=sh5[j][k];
+		}
+	}
+	
+	for(j=0; j<count[2]; j++){
+		for(k=0; k<8; k++){
+			document[i].shingle8[j][k]=sh8[j][k];
+		}
+	}
+}
+
+void readFiles(char text[], char ctext[], char fileName[]){
+	FILE *file;
+	file = fopen(fileName, "r");
+	char c;
+	int i=0;
+	
+	if (file) {
+	    while ((c = getc(file)) != EOF){
+	    	if(c >= 'A' && c <= 'Z'){
+	    		c += 'a'-'A';
+			}
+			if(c == ' ' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')  ){
+	    		text[i]=c;
+	        	ctext[i]=c;
+	        
+	        	i++;
+			}
+		}
+	    fclose(file);
+	}
+	
+	//printf("%s\n",text);
+	/*printf("%d\n",strlen(text));*/
+}
+
+int shingle(int k, char text[], char s[][8]){
+	int i, j, h=0, c=0, p, z;
+	char tmp[8];
+	//printf("SHINGLE K = %d \n",k);
+	
+	for(i=0; i<1000; i++){
+		for(j=0; j<8; j++){
+			s[i][j]='\0';
+		}
+	}
+	
+	
+	while((h+k)<=strlen(text)){
+		p=0;
+		
+		for(z=0; z<8; z++){
+			tmp[z]='\0';
+		}
+		for(j=h; j<h+k; j++){
+			//s[c][p++]=text[j];
+			tmp[p++]=text[j];
+		}
+		if( notExist(tmp,s,c,k)==-1){
+			//printf("%d => yokmus %s - %d\n",c,tmp,notExist(tmp,s,c,k));
+			strcpy(s[c],tmp);
+			c++;
+		}
+		
+		/*c--;
+		if(notExist(tmp,s,c,k)!=-1){
+			printf("%d => Varmis %s - %d\n",c,tmp,notExist(tmp,s,c,k));
+		}
+		c++;*/
+		
+		//printf("J=%d\n",j);
+		//printf("%s -%d\n",s[c],strlen(s[c]));
+		h++;
+		//printf("\n");
+	}
+	
+	return c;
+}
+
+int notExist(char target[], char text[][8], int count,  int k){
+	int j;
+	
+	for(j=0; j<count; j++){
+		if( strcmp(text[j],target)==0){
+			return j;
+		}
+	}
+	return -1;
+}
+
+float jaccard(int d1, int d2, int k){
+	
+	
+	int i,j, countId;
+	
+	int kesisim=0;
+	
+	switch(k) {
+   		case 4:
+	      	countId=0;
+	      	break;
+		case 5:
+	      	countId=1;
+	      	break;
+      	case 8:
+	      	countId=2;
+	      	break;
+	}
+	
+	if(k==4){
+		for(i=0; i<document[d1].count[countId]; i++ ){
+			for(j=0; j<document[d2].count[countId]; j++){
+				if( strcmp(document[d1].shingle4[i], document[d2].shingle4[j]) == 0 ){
+					kesisim++;
+				}
+			}	
+		}
+	}else if(k==5){
+		for(i=0; i< document[d1].count[countId]; i++ ){
+			for(j=0; j< document[d2].count[countId]; j++ ){
+				if( strcmp(document[d1].shingle5[i], document[d2].shingle5[j]) == 0 ){
+					kesisim++;
+				}
+			}	
+		}
+	}else if(k==8){
+		for(i=0; i< document[d1].count[countId]; i++ ){
+			for(j=0; j<document[d2].count[countId]; j++ ){
+				if( strcmp(document[d1].shingle8[i], document[d2].shingle8[j]) == 0 ){
+					kesisim++;
+				}
+			}	
+		}
+	}
+	
+	return (float)kesisim/(document[d1].count[countId]+document[d2].count[countId]-kesisim);
+}
+
+void printfJaccard(float m[][DOC_ARRAY_SIZE]){
+	int i,j;
+	
+	printf("      ");
+	for(i=0; i<DOC_ARRAY_SIZE; i++){
+		printf("%d",i);
+		printf("%s",(i<10?"     ":"    "));
+	}
+	printf("\n");
+	for(i=0; i<DOC_ARRAY_SIZE; i++){
+		printf("%d",i);
+		printf("%s",(i<10?"   ":"  "));
+		for(j=0; j<DOC_ARRAY_SIZE;j++){
+			printf("%.2f  ",m[i][j]);
+		}
+		printf("\n");
+	}
+}
+
+int getShingleSize(char shingles[][8], int k){
+	int i,j, count=0;
+	
+	strcpy(shingles[count],document[0].shingle4[0]);
+	count++;
+	if(k==4){
+		for(i=0; i<DOC_ARRAY_SIZE; i++){
+			for(j=0; j<document[i].count[0];j++){
+				if(notExist(document[i].shingle4[j], shingles, count, k) == -1){
+					strcpy(shingles[count],document[i].shingle4[j]);
+					count++;
+				}
+			}	
+		}
+	}else if(k==5){
+		for(i=0; i<DOC_ARRAY_SIZE; i++){
+			for(j=0; j<document[i].count[1];j++){
+				if(notExist(document[i].shingle5[j], shingles, count, k) == -1){
+					strcpy(shingles[count],document[i].shingle5[j]);
+					count++;
+				}
+			}	
+		}
+	}else if(k==8){
+		for(i=0; i<DOC_ARRAY_SIZE; i++){
+			for(j=0; j<document[i].count[2];j++){
+				if(notExist(document[i].shingle8[j], shingles, count, k) == -1){
+					strcpy(shingles[count],document[i].shingle8[j]);
+					count++;
+				}
+			}	
+		}
+	}
+	
+	return count;
+}
+
+void initDoc(){
+	char text[1000];
+	char ctext[1000];
+	
+	char s4[1000][8];
+	char s5[1000][8];
+	char s8[1000][8];
+	
+	char *file[] = {
+		"data/1.txt",
+		"data/2.txt",
+		"data/3.txt",
+		"data/4.txt",
+		"data/5.txt",
+		"data/6.txt",
+		"data/7.txt",
+		"data/8.txt",
+		"data/9.txt",
+		"data/10.txt",
+		"data/11.txt",
+		"data/12.txt",
+		"data/13.txt",
+		"data/14.txt",
+		"data/15.txt",
+		"data/16.txt",
+		"data/17.txt",
+		"data/18.txt",
+		"data/19.txt",
+		"data/20.txt",
+	};
+	
+	int i,j,h,c[3];
+
+	for(i=0; i<20; i++){
+		for(j=0; j<1000; j++){
+			text[j]='\0';
+			ctext[j]='\0';
+		}
+		
+		readFiles(text,ctext,file[i]);
+		
+		c[0] = shingle(4,text,s4);
+		c[1] = shingle(5,text,s5);
+		c[2] = shingle(8,text,s8);
+		
+		init_documents(i,text,ctext,s4,s5,s8,c);
+			
+		/*printf("%s isimli dokuman\n",file[i]);
+		printf("4-S sayisi %d\n",c[0]);
+		printf("5-S sayisi %d\n",c[1]);
+		printf("8-S sayisi %d\n\n",c[2]);*/
+		
+	}
+	
+}
+
+void showDocsCount(int k){
+	int i,j,c;
+	
+	switch(k){
+		case 4: c=0; break;
+		case 5: c=1; break;
+		case 8: c=2; break;
+	}
+	
+	printf("Dokumanlardaki %d Shingle sayilari\n",k);
+	for(i=0; i<20; i++){
+		printf("DocId=%d => %d\n",i+1, document[i].count[c]);
+	}
+	printf("___________________________\n");
+}
+
+void jaccardBenzerligi(int k){
+	int i,j;
+	float jaccardMatrix[DOC_ARRAY_SIZE][DOC_ARRAY_SIZE];
+	printf("K = %d icin Jaccard\n",k);
+	printf("___________________________\n");
+	for(i=0; i<20; i++){
+		for(j=0; j<20; j++){
+			jaccardMatrix[i][j] = (float)jaccard(i,j,k);
+		}
+	}
+		
+	printfJaccard(jaccardMatrix);
+}
+
+void minhash(int k){
+	int i,j,s;
+	int sSize=0;
+	char shingles[20000][8];
+	int hashA[100];
+	
+	int *hashmin[15000];
+    for (i=0; i<15000; i++)
+         hashmin[i] = (int *)malloc(DOC_10 * sizeof(int));
+	
+	j=1;
+	for(i=0; i<100; i++){
+		hashA[i]=j;
+		j+=2;
+		
+	}
+	
+	sSize = getShingleSize(shingles,k);
+	printf("%d\n",sSize);
+	
+	//BURADA KALDIK xD
+}
+
+int main(){
+	int i,j,k=8;
+	
+	initDoc();
+	
+	showDocsCount(k);
+	jaccardBenzerligi(k);
+	//minhash(k);
+	
+	return 0;
+}
